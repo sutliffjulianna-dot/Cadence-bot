@@ -1,0 +1,13 @@
+{
+  "name": "cadence-sms-bot",
+  "version": "1.0.0",
+  "description": "Cadence — business compliance SMS assistant",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "twilio": "^4.19.0"
+  }
+}
