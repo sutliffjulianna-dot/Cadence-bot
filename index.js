@@ -8,11 +8,20 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// ── Supabase client ──────────────────────────────────────────────────────
-const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_ANON_KEY
-);
+// ── Supabase client
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
+
+console.log("URL:", SUPABASE_URL ? "found" : "MISSING");
+console.log("KEY:", SUPABASE_KEY ? "found" : "MISSING");
+
+if (!SUPABASE_URL || !SUPABASE_KEY) {
+  console.error("Missing Supabase env vars");
+  process.exit(1);
+}
+
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
 
 // ── In-memory session cache (Supabase is the source of truth) ────────────
 // We cache the current conversation step in memory for speed,
