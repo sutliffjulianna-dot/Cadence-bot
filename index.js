@@ -8,20 +8,22 @@ app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// ── Supabase client
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
+// ── Supabase client ──────────────────────────────────────────────────────
+const SUPABASE_URL = process.env.SUPABASE_URL || process.env.SUPABASE_Url || process.env.supabase_url;
+const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_anon_key || process.env.supabase_anon_key;
 
-console.log("URL:", SUPABASE_URL ? "found" : "MISSING");
-console.log("KEY:", SUPABASE_KEY ? "found" : "MISSING");
+console.log("ENV CHECK — SUPABASE_URL:", SUPABASE_URL ? "✓ found" : "✗ MISSING");
+console.log("ENV CHECK — SUPABASE_ANON_KEY:", SUPABASE_KEY ? "✓ found" : "✗ MISSING");
+console.log("ENV CHECK — TWILIO_ACCOUNT_SID:", process.env.TWILIO_ACCOUNT_SID ? "✓ found" : "✗ MISSING");
+console.log("ENV CHECK — All Railway env keys:", Object.keys(process.env).filter(k => !k.startsWith("npm")).join(", "));
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error("Missing Supabase env vars");
+  console.error("FATAL: Supabase environment variables not found. Check Railway variables.");
+  console.error("Available env keys:", Object.keys(process.env).join(", "));
   process.exit(1);
 }
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
-
 
 // ── In-memory session cache (Supabase is the source of truth) ────────────
 // We cache the current conversation step in memory for speed,
@@ -545,9 +547,49 @@ app.post("/sms", async (req, res) => {
     const est = getTaxEstimate(user.data.revenue);
     const reportInfo = getStateReport(user.data.state);
 
-    return reply(res,
-      `You're all set, ${user.data.name || "friend"}. Here's what I have:\n\n🏢 ${user.data.businessName || "Your business"}\n📍 ${user.data.state} · ${user.data.entityType}\n📅 Annual report: ${reportInfo}\n💰 Tax savings goal: $${est.low.toLocaleString()}–$${est.high.toLocaleString()}/month\n\nI'll reach out before anything is due. You won't hear from me unless something needs your attention.\n\nYou've got this. 🤝`
-    );
+    // Send wrap-up summary
+    const summaryMsg = `You're all set, ${user.data.name || "friend"}. Here's what I have:\n\n🏢 ${user.data.businessName || "Your business"}\n📍 ${user.data.state} · ${user.data.entityType}\n📅 Annual report: ${reportInfo}\n💰 Tax savings goal: $${est.low.toLocaleString()}–$${est.high.toLocaleString()}/month\n\nI'll reach out before anything is due. You won't hear from me unless something needs your attention.\n\nYou've got this. 🤝`;
+
+    // Send vCard follow-up after a short delay so it feels natural
+    setTimeout(async () => {
+      try {
+        const client = twilio(
+          process.env.TWILIO_ACCOUNT_SID,
+          process.env.TWILIO_AUTH_TOKEN
+        );
+        // First send the save-me message
+        await client.messages.create({
+          body: `One more thing, ${user.data.name || "friend"} — save me as a contact so you always know it's me when I reach out. 👇`,
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: from
+        });
+        // Then send the vCard
+        const vcard = [
+          'BEGIN:VCARD',
+          'VERSION:3.0',
+          'FN:Cadence · FileFirm',
+          'ORG:FileFirm',
+          'TEL;TYPE=CELL:+17703433911',
+          'URL:https://getfilefirm.com',
+          'NOTE:Your FileFirm business assistant. Text HELP anytime.',
+          'END:VCARD'
+        ].join('\n');
+
+        const vcardBase64 = Buffer.from(vcard).toString('base64');
+        const vcardDataUri = 'data:text/vcard;base64,' + vcardBase64;
+
+        await client.messages.create({
+          body: '',
+          from: process.env.TWILIO_PHONE_NUMBER,
+          to: from,
+          mediaUrl: ['https://getfilefirm.com/cadence.vcf']
+        });
+      } catch (err) {
+        console.error('vCard send error:', err.message);
+      }
+    }, 3000);
+
+    return reply(res, summaryMsg);
   }
 
   // STEP 12+: Ongoing conversation
@@ -563,13 +605,73 @@ app.post("/sms", async (req, res) => {
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
-app.get("/privacy", (req, res) => {
-  res.send('<html><head><title>FileFirm Privacy Policy</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:sans-serif;max-width:680px;margin:40px auto;padding:0 24px;line-height:1.7}</style></head><body><h1>Privacy Policy</h1><p>Last updated: October 6, 2026. FileFirm is operated by Julianna Sutliff (JS Elizabeth & Companies).</p><h2>SMS Messaging</h2><p>SMS messaging is optional and not required to use FileFirm. By providing your mobile number and opting in, you consent to receive optional SMS messages. Reply STOP to opt out anytime. Message and data rates may apply.</p><h2>Data</h2><p>We collect name, phone, state, and business details. We do not sell your data.</p><h2>Contact</h2><p>hello@getfilefirm.com</p></body></html>');
+
+// ── Cadence vCard ────────────────────────────────────────────────────────
+app.get("/cadence.vcf", (req, res) => {
+  const vcard = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    'FN:Cadence · FileFirm',
+    'ORG:FileFirm',
+    'TEL;TYPE=CELL:+17703433911',
+    'URL:https://getfilefirm.com',
+    'NOTE:Your FileFirm business assistant. Text HELP anytime.',
+    'END:VCARD'
+  ].join('\n');
+  res.setHeader('Content-Type', 'text/vcard');
+  res.setHeader('Content-Disposition', 'attachment; filename="Cadence-FileFirm.vcf"');
+  res.send(vcard);
 });
 
-app.get("/terms", (req, res) => {
-  res.send('<html><head><title>FileFirm Terms</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:sans-serif;max-width:680px;margin:40px auto;padding:0 24px;line-height:1.7}</style></head><body><h1>Terms & Conditions</h1><p>Last updated: October 6, 2026. FileFirm is operated by Julianna Sutliff (JS Elizabeth & Companies).</p><h2>SMS Terms</h2><p>SMS messaging is optional and not required to use the service. Reply STOP to cancel at any time. Message and data rates may apply.</p><h2>Disclaimer</h2><p>FileFirm provides general business reminders only. Not legal or tax advice. Tax estimates are for planning purposes only. Consult a licensed CPA.</p><h2>Contact</h2><p>hello@getfilefirm.com</p></body></html>');
+// ── Privacy Policy ───────────────────────────────────────────────────────
+app.get("/privacy", (req, res) => {
+  res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>FileFirm Privacy Policy</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>body{font-family:sans-serif;max-width:680px;margin:40px auto;padding:0 24px;color:#222;line-height:1.7}h1{font-size:24px;margin-bottom:8px}h2{font-size:16px;margin-top:32px}a{color:#1473E6}</style>
+  </head><body>
+  <h1>Privacy Policy</h1>
+  <p><strong>FileFirm</strong> is operated by Julianna Sutliff (JS Elizabeth &amp; Companies). Last updated: October 6, 2026.</p>
+  <h2>Information We Collect</h2>
+  <p>We collect your name, business name, state, mobile phone number, and business details when you sign up at getfilefirm.com or text our number.</p>
+  <h2>How We Use Your Information</h2>
+  <p>We use your information to send optional SMS business reminders, compliance alerts, and tax deadline notifications via our Cadence assistant. We do not sell your personal information to third parties.</p>
+  <h2>SMS Messaging</h2>
+  <p>SMS messaging is optional and not required to use FileFirm. By providing your mobile number and opting in, you consent to receive optional SMS messages from FileFirm. Message frequency varies. Message and data rates may apply. Reply STOP to opt out at any time. Reply HELP for help.</p>
+  <h2>Data Security</h2>
+  <p>We take reasonable measures to protect your information from unauthorized access. Data is encrypted in transit.</p>
+  <h2>Your Rights</h2>
+  <p>You may request deletion of your data at any time by texting DELETE to 770-343-3911 or emailing hello@getfilefirm.com.</p>
+  <h2>Contact</h2>
+  <p>hello@getfilefirm.com | FileFirm is a product of JS Elizabeth &amp; Companies.</p>
+  </body></html>`);
 });
+
+// ── Terms & Conditions ────────────────────────────────────────────────────
+app.get("/terms", (req, res) => {
+  res.send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>FileFirm Terms &amp; Conditions</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <style>body{font-family:sans-serif;max-width:680px;margin:40px auto;padding:0 24px;color:#222;line-height:1.7}h1{font-size:24px;margin-bottom:8px}h2{font-size:16px;margin-top:32px}a{color:#1473E6}</style>
+  </head><body>
+  <h1>Terms &amp; Conditions</h1>
+  <p><strong>FileFirm</strong> is operated by Julianna Sutliff (JS Elizabeth &amp; Companies). Last updated: October 6, 2026.</p>
+  <h2>Acceptance</h2>
+  <p>By using FileFirm you agree to these Terms. If you do not agree, do not use the service.</p>
+  <h2>SMS Terms</h2>
+  <p>FileFirm provides optional SMS business reminders via Cadence. SMS messaging is optional and not required to use the service. By providing your mobile number and opting in, you consent to receive optional SMS messages.</p>
+  <p>Message frequency varies. Message and data rates may apply.</p>
+  <h2>Opt-Out</h2>
+  <p>Reply STOP at any time to cancel SMS messages. After texting STOP you will receive one confirmation and no further messages will be sent.</p>
+  <h2>Help</h2>
+  <p>Reply HELP for help or contact hello@getfilefirm.com.</p>
+  <h2>Disclaimer</h2>
+  <p>FileFirm provides general business reminders for informational purposes only. We are not a law firm or CPA. Nothing we send constitutes legal or tax advice. Tax estimates are for planning purposes only. Always consult a licensed attorney or CPA.</p>
+  <h2>Limitation of Liability</h2>
+  <p>FileFirm is not responsible for missed filings, penalties, or tax liabilities. Our service is a reminder and organization tool only.</p>
+  <h2>Contact</h2>
+  <p>hello@getfilefirm.com | FileFirm is a product of JS Elizabeth &amp; Companies.</p>
+  </body></html>`);
+});
+
 // ── Health check ─────────────────────────────────────────────────────────
 app.get("/health", (req, res) => {
   res.json({ status: "ok", service: "FileFirm / Cadence", time: new Date().toISOString() });
