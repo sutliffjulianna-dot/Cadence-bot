@@ -1,13 +1,14 @@
 {
   "name": "cadence-sms-bot",
   "version": "1.0.0",
-  "description": "Cadence — business compliance SMS assistant",
+  "description": "Cadence — FileFirm business assistant",
   "main": "index.js",
   "scripts": {
     "start": "node index.js"
   },
   "dependencies": {
     "express": "^4.18.2",
-    "twilio": "^4.19.0"
+    "twilio": "^4.19.0",
+    "@supabase/supabase-js": "^2.39.0"
   }
 }

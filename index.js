@@ -1,18 +1,73 @@
 const express = require("express");
 const twilio = require("twilio");
 const path = require("path");
+const { createClient } = require("@supabase/supabase-js");
 const app = express();
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, "public")));
 
-// ── In-memory user store (replace with Supabase later) ──────────────────
-const users = {};
+// ── Supabase client ──────────────────────────────────────────────────────
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+);
 
-function getUser(phone) {
-  if (!users[phone]) users[phone] = { phone, step: 0, data: {} };
-  return users[phone];
+// ── In-memory session cache (Supabase is the source of truth) ────────────
+// We cache the current conversation step in memory for speed,
+// but all user data is written to and read from Supabase.
+const sessionCache = {};
+
+// ── Get or create user from Supabase ────────────────────────────────────
+async function getUser(phone) {
+  // Check cache first
+  if (sessionCache[phone]) return sessionCache[phone];
+
+  // Try to find existing user in Supabase
+  const { data, error } = await supabase
+    .from("members")
+    .select("*")
+    .eq("phone", phone)
+    .single();
+
+  if (data) {
+    sessionCache[phone] = { phone, step: data.onboarding_step || 0, data: data.cadence_data || {} };
+    return sessionCache[phone];
+  }
+
+  // New user — create record in Supabase
+  const newUser = { phone, step: 0, data: {} };
+  await supabase.from("members").insert({
+    phone,
+    onboarding_step: 0,
+    cadence_data: {},
+    plan: "free",
+    signup_source: "text",
+    created_at: new Date().toISOString(),
+  });
+
+  sessionCache[phone] = newUser;
+  return newUser;
+}
+
+// ── Save user to Supabase ────────────────────────────────────────────────
+async function saveUser(user) {
+  sessionCache[user.phone] = user;
+  await supabase
+    .from("members")
+    .update({
+      onboarding_step: user.step,
+      cadence_data: user.data,
+      // Pull key fields up to top-level columns for easy admin viewing
+      first_name: user.data.name || null,
+      business_name: user.data.businessName || null,
+      state: user.data.state || null,
+      entity_type: user.data.entityType || null,
+      registration_date: user.data.registrationDate || null,
+      last_active: new Date().toISOString(),
+    })
+    .eq("phone", user.phone);
 }
 
 // ── SMS reply helper ─────────────────────────────────────────────────────
@@ -22,7 +77,7 @@ function reply(res, message) {
   res.type("text/xml").send(twiml.toString());
 }
 
-// ── Send outbound SMS (for web signup trigger) ───────────────────────────
+// ── Send outbound SMS ────────────────────────────────────────────────────
 async function sendSMS(to, message) {
   const client = twilio(
     process.env.TWILIO_ACCOUNT_SID,
@@ -109,7 +164,7 @@ function getStateReport(state) {
 }
 
 // ════════════════════════════════════════════════════════════════════════
-// WEB SIGNUP ENDPOINT — called when someone submits the opt-in form
+// WEB SIGNUP ENDPOINT
 // ════════════════════════════════════════════════════════════════════════
 app.post("/signup", async (req, res) => {
   try {
@@ -119,105 +174,266 @@ app.post("/signup", async (req, res) => {
       return res.status(400).json({ error: "Missing required fields" });
     }
 
-    // Clean phone number
     const cleanPhone = phone.replace(/\D/g, "");
     const e164 = `+1${cleanPhone}`;
 
-    // Pre-load user so Cadence skips the name/state/entity questions
-    const user = getUser(e164);
-    user.data.name = firstName;
-    user.data.state = state;
-    user.data.entityType = entityType || "business";
-    user.step = 2; // Skip to business name step — that's Cadence's first question
+    // Check if user already exists
+    const { data: existing } = await supabase
+      .from("members")
+      .select("phone")
+      .eq("phone", e164)
+      .single();
 
-    // Send welcome text immediately
+    if (existing) {
+      // Already signed up — just re-send welcome
+      await sendSMS(cleanPhone,
+        `Hey ${firstName}! You're already in FileFirm. Text STATUS to see where your business stands, or HELP if you need anything. — Cadence 🤝`
+      );
+      return res.json({ success: true, existing: true });
+    }
+
+    // Create new member in Supabase
+    await supabase.from("members").insert({
+      phone: e164,
+      first_name: firstName,
+      state,
+      entity_type: entityType || null,
+      onboarding_step: 2,
+      cadence_data: { name: firstName, state, entityType: entityType || "business" },
+      plan: "free",
+      signup_source: "web",
+      created_at: new Date().toISOString(),
+      last_active: new Date().toISOString(),
+    });
+
+    // Update session cache
+    sessionCache[e164] = {
+      phone: e164,
+      step: 2,
+      data: { name: firstName, state, entityType: entityType || "business" }
+    };
+
+    // Send welcome text
     const welcomeMsg =
-      `Hey ${firstName}! 👋 I'm Cadence — your FileFirm compliance assistant.\n\n` +
-      `I've got your ${state} ${entityType || "business"} loaded up. I'll text you before anything is due — taxes, filings, deadlines.\n\n` +
+      `Hey ${firstName}! 👋 I'm Cadence — your FileFirm business assistant.\n\n` +
+      `I've got your ${state} ${entityType || "business"} profile started. I'll keep track of your filings, taxes, and deadlines.\n\n` +
       `One quick question to finish your setup:\n\nWhat's the name of your business?`;
 
     await sendSMS(cleanPhone, welcomeMsg);
-
     return res.json({ success: true });
+
   } catch (err) {
     console.error("Signup error:", err);
-    return res.status(500).json({ error: "Failed to send welcome text" });
+    return res.status(500).json({ error: "Failed to process signup" });
   }
 });
 
 // ════════════════════════════════════════════════════════════════════════
-// SMS WEBHOOK — handles incoming texts from users
+// ADMIN ENDPOINT — your private view of all members
 // ════════════════════════════════════════════════════════════════════════
-app.post("/sms", (req, res) => {
+app.get("/admin/members", async (req, res) => {
+  // Simple token check — set ADMIN_TOKEN in Railway variables
+  const token = req.query.token;
+  if (token !== process.env.ADMIN_TOKEN) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const { data, error } = await supabase
+    .from("members")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (error) return res.status(500).json({ error: error.message });
+  return res.json({ count: data.length, members: data });
+});
+
+// ════════════════════════════════════════════════════════════════════════
+// SMS WEBHOOK — all incoming texts from users
+// ════════════════════════════════════════════════════════════════════════
+app.post("/sms", async (req, res) => {
   const from = req.body.From;
   const body = (req.body.Body || "").trim();
   const input = body.toLowerCase();
-  const user = getUser(from);
+
+  // Handle MMS (photo) — receipt or mail capture
+  const hasPhoto = req.body.NumMedia && parseInt(req.body.NumMedia) > 0;
+  const photoUrl = hasPhoto ? req.body.MediaUrl0 : null;
+
+  let user;
+  try {
+    user = await getUser(from);
+  } catch (err) {
+    console.error("Error getting user:", err);
+    return reply(res, "Hey — I'm having a moment. Try texting me again in a minute. 🤝");
+  }
+
   const step = user.step;
 
-  // ── STEP 0: Cold text (didn't come through web form) ──────────────────
-  if (step === 0) {
-    user.step = 1;
+  // ── Photo received — file it ─────────────────────────────────────────
+  if (hasPhoto) {
+    try {
+      // Save photo reference to Supabase
+      await supabase.from("documents").insert({
+        member_phone: from,
+        media_url: photoUrl,
+        media_type: req.body.MediaContentType0 || "image/jpeg",
+        source: "sms",
+        status: "received",
+        created_at: new Date().toISOString(),
+      });
+
+      user.data.lastPhotoReceived = new Date().toISOString();
+      await saveUser(user);
+
+      return reply(res,
+        `Got it — I've filed that photo. 📎\n\nIs this a receipt or a piece of mail?\n\n1️⃣ Receipt\n2️⃣ Mail or government document\n3️⃣ Something else`
+      );
+    } catch (err) {
+      console.error("Photo save error:", err);
+      return reply(res, "Got your photo — having a little trouble filing it right now. Try again in a minute.");
+    }
+  }
+
+  // ── Photo context — categorize what was just received ────────────────
+  if (user.data.lastPhotoReceived && step > 11) {
+    const timeSincePhoto = Date.now() - new Date(user.data.lastPhotoReceived).getTime();
+    if (timeSincePhoto < 300000) { // Within 5 minutes
+      let category = "other";
+      if (input === "1" || input.includes("receipt")) category = "receipt";
+      else if (input === "2" || input.includes("mail") || input.includes("government")) category = "mail";
+
+      try {
+        await supabase.from("documents")
+          .update({ category, status: "filed" })
+          .eq("member_phone", from)
+          .eq("status", "received");
+
+        user.data.lastPhotoReceived = null;
+        await saveUser(user);
+
+        const confirmMsg = category === "receipt"
+          ? `Filed as a receipt. ✓ I'll categorize it and add it to your records. Text me another anytime.`
+          : category === "mail"
+          ? `Filed as mail. ✓ I've saved it to your documents. If there's a deadline or action needed, I'll let you know.`
+          : `Filed. ✓ I've saved it to your documents.`;
+
+        return reply(res, confirmMsg);
+      } catch (err) {
+        console.error("Category update error:", err);
+      }
+    }
+  }
+
+  // ── Global keywords (work at any step) ──────────────────────────────
+  if (input === "stop") {
+    await supabase.from("members").update({ opted_out: true }).eq("phone", from);
+    return reply(res, "You've been unsubscribed from FileFirm messages. Reply START anytime to come back.");
+  }
+
+  if (input === "start" || input === "unstop") {
+    await supabase.from("members").update({ opted_out: false }).eq("phone", from);
+    return reply(res, `Welcome back! 👋 Reply HELP to see what I can do, or STATUS to check where your business stands.`);
+  }
+
+  if (input === "help") {
     return reply(res,
-      `Hey, I'm Cadence. 👋\n\nI'm your FileFirm compliance assistant — I'll keep track of your taxes, filings, and deadlines so you don't have to stress about them.\n\nI'll only text you when something actually needs your attention. No spam, ever.\n\nLet's get you set up — takes about 3 minutes.\n\nWhat's your first name?`
+      `I'm Cadence — your FileFirm business assistant. Here's what I can help with:\n\nSTATUS — see your business snapshot\nTAXES — estimated tax info\nFILING — state filing help\nSend a photo — file a receipt or mail\n\ngetfilefirm.com to see your dashboard.`
     );
   }
 
-  // ── STEP 1: Got name (cold signup only) ───────────────────────────────
+  if (input === "status") {
+    const reportInfo = user.data.state ? getStateReport(user.data.state) : "unknown";
+    return reply(res,
+      `Here's where ${user.data.businessName || "your business"} stands:\n\n📋 State: ${user.data.state || "not set"}\n🏢 Entity: ${user.data.entityType || "not set"}\n📅 Annual report: ${reportInfo}\n💰 Tax savings: tracking\n\nNothing urgent right now. I'll text you when something comes up. 🤝`
+    );
+  }
+
+  if (input === "done" || input === "filed") {
+    return reply(res,
+      `✓ Marked as done. You won't hear about this again until next time it's due. Nice work, ${user.data.name || "friend"}.`
+    );
+  }
+
+  // ── ONBOARDING STEPS ─────────────────────────────────────────────────
+
+  // STEP 0: Cold text
+  if (step === 0) {
+    user.step = 1;
+    await saveUser(user);
+    return reply(res,
+      `Hey, I'm Cadence. 👋\n\nI'm your FileFirm business assistant — I keep track of your taxes, filings, and deadlines so you don't have to stress about them.\n\nI'll only reach out when something needs your attention. No spam, ever.\n\nLet's get you set up — takes about 3 minutes.\n\nWhat's your first name?`
+    );
+  }
+
+  // STEP 1: Name
   if (step === 1) {
     user.data.name = body;
     user.step = 2;
+    await saveUser(user);
     return reply(res, `Nice to meet you, ${user.data.name}! What's the name of your business?`);
   }
 
-  // ── STEP 2: Got business name ──────────────────────────────────────────
+  // STEP 2: Business name
   if (step === 2) {
     user.data.businessName = body;
     user.step = 3;
 
-    // If they came from web form, we already have state — skip ahead
     if (user.data.state && user.data.entityType) {
       user.step = 5;
+      await saveUser(user);
       return reply(res,
         `Got it — ${body} is all set in my system.\n\nWhen did you register your business? Approximate month and year is fine.\n\n(Example: March 2021)\n\nIf you haven't registered yet, just reply NOT YET.`
       );
     }
 
+    await saveUser(user);
     return reply(res, `Got it. What state is ${user.data.businessName} registered in?`);
   }
 
-  // ── STEP 3: Got state ──────────────────────────────────────────────────
+  // STEP 3: State
   if (step === 3) {
     user.data.state = body;
     user.step = 4;
+    await saveUser(user);
     return reply(res,
       `What type of business is it? Reply with a number:\n\n1️⃣ LLC\n2️⃣ Sole Proprietor\n3️⃣ S-Corp\n4️⃣ C-Corp\n5️⃣ Partnership\n6️⃣ Not registered yet\n7️⃣ Not sure`
     );
   }
 
-  // ── STEP 4: Got entity type ────────────────────────────────────────────
+  // STEP 4: Entity type
   if (step === 4) {
     const types = { "1":"LLC","2":"Sole Proprietor","3":"S-Corp","4":"C-Corp","5":"Partnership","6":"Not registered yet","7":"Not sure" };
     user.data.entityType = types[input] || body;
     user.step = 5;
+    await saveUser(user);
     return reply(res,
       `When did you register ${user.data.businessName}? Approximate month and year is fine.\n\n(Example: March 2021)\n\nIf you haven't registered yet, just reply NOT YET.`
     );
   }
 
-  // ── STEP 5: Got registration date ─────────────────────────────────────
+  // STEP 5: Registration date (anniversary gift data!)
   if (step === 5) {
     user.data.registrationDate = body;
     user.step = 6;
+
+    // Parse and save anniversary date to Supabase
+    if (body.toLowerCase() !== "not yet") {
+      await supabase.from("members")
+        .update({ registration_date: body })
+        .eq("phone", from);
+    }
+
+    await saveUser(user);
     return reply(res,
       `Have you filed your ${user.data.state} annual report this year?\n\n1️⃣ Yes, I filed it\n2️⃣ No, not yet\n3️⃣ I don't know what that is`
     );
   }
 
-  // ── STEP 6: Annual report check ───────────────────────────────────────
+  // STEP 6: Annual report
   if (step === 6) {
     user.data.annualReport = input;
     user.step = 7;
+    await saveUser(user);
 
     if (input === "3" || input.includes("don't know") || input.includes("not sure")) {
       const reportInfo = getStateReport(user.data.state);
@@ -238,10 +454,11 @@ app.post("/sms", (req, res) => {
     );
   }
 
-  // ── STEP 7: Estimated taxes ────────────────────────────────────────────
+  // STEP 7: Estimated taxes
   if (step === 7) {
     user.data.estimatedTaxes = input;
     user.step = 8;
+    await saveUser(user);
 
     if (input === "3" || input.includes("didn't know")) {
       return reply(res,
@@ -254,10 +471,11 @@ app.post("/sms", (req, res) => {
     );
   }
 
-  // ── STEP 8: EIN ───────────────────────────────────────────────────────
+  // STEP 8: EIN
   if (step === 8) {
     user.data.hasEIN = input;
     user.step = 9;
+    await saveUser(user);
 
     if (input === "3" || input.includes("what")) {
       return reply(res,
@@ -276,20 +494,22 @@ app.post("/sms", (req, res) => {
     );
   }
 
-  // ── STEP 9: Revenue ───────────────────────────────────────────────────
+  // STEP 9: Revenue
   if (step === 9) {
     user.data.revenue = input;
     user.step = 10;
+    await saveUser(user);
     const est = getTaxEstimate(input);
     return reply(res,
-      `Based on your revenue, you should be setting aside about $${est.low.toLocaleString()}–$${est.high.toLocaleString()}/month for taxes.\n\nDo you have a separate savings account just for taxes?\n\n1️⃣ Yes — I'm already doing this\n2️⃣ No\n3️⃣ Not yet but I want to`
+      `Based on your revenue, you should be setting aside about $${est.low.toLocaleString()}–$${est.high.toLocaleString()}/month for taxes. This is an estimate for planning — not tax advice.\n\nDo you have a separate savings account just for taxes?\n\n1️⃣ Yes — I'm already doing this\n2️⃣ No\n3️⃣ Not yet but I want to`
     );
   }
 
-  // ── STEP 10: Tax savings ──────────────────────────────────────────────
+  // STEP 10: Tax savings
   if (step === 10) {
     user.data.taxSavings = input;
     user.step = 11;
+    await saveUser(user);
 
     if (input === "1" || input.includes("yes")) {
       return reply(res,
@@ -302,10 +522,17 @@ app.post("/sms", (req, res) => {
     );
   }
 
-  // ── STEP 11: Sales tax ────────────────────────────────────────────────
+  // STEP 11: Sales tax → wrap up onboarding
   if (step === 11) {
     user.data.salesTax = input;
     user.step = 12;
+    await saveUser(user);
+
+    // Mark onboarding complete in Supabase
+    await supabase.from("members")
+      .update({ onboarding_complete: true, onboarding_completed_at: new Date().toISOString() })
+      .eq("phone", from);
+
     const est = getTaxEstimate(user.data.revenue);
     const reportInfo = getStateReport(user.data.state);
 
@@ -314,32 +541,23 @@ app.post("/sms", (req, res) => {
     );
   }
 
-  // ── STEP 12+: Ongoing ─────────────────────────────────────────────────
-  if (input === "done" || input === "filed") {
-    return reply(res,
-      `✓ Marked as done. You won't hear about this again until next time it's due. Nice work, ${user.data.name || "friend"}.`
-    );
-  }
-
-  if (input === "help") {
-    return reply(res,
-      `I'm here. What do you need help with?\n\nReply:\nTAXES — help with estimated taxes\nFILING — help with a state filing\nMAIL — you got something confusing in the mail\nSTATUS — see where you stand on everything`
-    );
-  }
-
-  if (input === "status") {
-    return reply(res,
-      `Here's where ${user.data.businessName || "your business"} stands:\n\n📋 State: ${user.data.state || "not set"}\n🏢 Entity: ${user.data.entityType || "not set"}\n📅 Annual report: on my radar\n💰 Tax savings: tracking\n\nNothing urgent right now. I'll text you when something comes up. 🤝`
-    );
-  }
+  // STEP 12+: Ongoing conversation
+  await supabase.from("members")
+    .update({ last_active: new Date().toISOString() })
+    .eq("phone", from);
 
   return reply(res,
-    `Got it. Reply HELP if you need anything, or STATUS to see where everything stands. I'll reach out when something needs your attention. 🤝`
+    `Got it. Reply HELP to see what I can do, or STATUS to check where everything stands. I'll reach out when something needs your attention. 🤝`
   );
 });
 
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
+});
+
+// ── Health check ─────────────────────────────────────────────────────────
+app.get("/health", (req, res) => {
+  res.json({ status: "ok", service: "FileFirm / Cadence", time: new Date().toISOString() });
 });
 
 const PORT = process.env.PORT || 3000;
