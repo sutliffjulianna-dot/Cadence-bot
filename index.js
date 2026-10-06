@@ -563,7 +563,13 @@ app.post("/sms", async (req, res) => {
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
+app.get("/privacy", (req, res) => {
+  res.send('<html><head><title>FileFirm Privacy Policy</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:sans-serif;max-width:680px;margin:40px auto;padding:0 24px;line-height:1.7}</style></head><body><h1>Privacy Policy</h1><p>Last updated: October 6, 2026. FileFirm is operated by Julianna Sutliff (JS Elizabeth & Companies).</p><h2>SMS Messaging</h2><p>SMS messaging is optional and not required to use FileFirm. By providing your mobile number and opting in, you consent to receive optional SMS messages. Reply STOP to opt out anytime. Message and data rates may apply.</p><h2>Data</h2><p>We collect name, phone, state, and business details. We do not sell your data.</p><h2>Contact</h2><p>hello@getfilefirm.com</p></body></html>');
+});
 
+app.get("/terms", (req, res) => {
+  res.send('<html><head><title>FileFirm Terms</title><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{font-family:sans-serif;max-width:680px;margin:40px auto;padding:0 24px;line-height:1.7}</style></head><body><h1>Terms & Conditions</h1><p>Last updated: October 6, 2026. FileFirm is operated by Julianna Sutliff (JS Elizabeth & Companies).</p><h2>SMS Terms</h2><p>SMS messaging is optional and not required to use the service. Reply STOP to cancel at any time. Message and data rates may apply.</p><h2>Disclaimer</h2><p>FileFirm provides general business reminders only. Not legal or tax advice. Tax estimates are for planning purposes only. Consult a licensed CPA.</p><h2>Contact</h2><p>hello@getfilefirm.com</p></body></html>');
+});
 // ── Health check ─────────────────────────────────────────────────────────
 app.get("/health", (req, res) => {
   res.json({ status: "ok", service: "FileFirm / Cadence", time: new Date().toISOString() });
