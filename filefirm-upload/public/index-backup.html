@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>FileFirm — Business compliance by text.</title>
+<meta name="color-scheme" content="light dark"/>
+<meta name="description" content="FileFirm sends you simple text reminders for taxes, filings, and business deadlines. Sign up in 60 seconds."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --black:#0A0A0A;
+  --white:#FFFFFF;
+  --off-white:#F5F5F5;
+  --gray-100:#F0F0F0;
+  --gray-200:#E0E0E0;
+  --gray-400:#9E9E9E;
+  --gray-600:#616161;
+  --blue:#1473E6;
+  --blue-dark:#0D66D0;
+  --blue-pale:#EBF4FF;
+  --green:#2D7D46;
+  --green-pale:#E8F5EC;
+  --red:#D32F2F;
+}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Inter',system-ui,sans-serif;
+  background:var(--white);
+  color:var(--black);
+  font-size:16px;
+  line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── NAV ── */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(255,255,255,0.92);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--gray-200);
+  padding:0 5vw;
+  height:56px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.nav-logo{
+  font-size:17px;font-weight:700;
+  color:var(--black);letter-spacing:-0.03em;
+}
+.nav-logo span{color:var(--blue)}
+.nav-right{
+  font-size:13px;color:var(--gray-600);
+}
+
+/* ── MAIN LAYOUT ── */
+.page{
+  min-height:calc(100vh - 56px);
+  display:grid;
+  grid-template-columns:1fr 440px;
+  max-width:1160px;
+  margin:0 auto;
+  padding:0 5vw;
+  gap:80px;
+  align-items:center;
+}
+
+/* ── LEFT ── */
+.left{padding:80px 0}
+
+.eyebrow{
+  display:inline-flex;align-items:center;gap:7px;
+  font-size:11px;font-weight:600;
+  letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--blue);margin-bottom:24px;
+}
+.eyebrow-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:var(--blue);
+}
+
+h1{
+  font-size:clamp(36px,4.5vw,58px);
+  font-weight:700;line-height:1.08;
+  letter-spacing:-0.035em;
+  color:var(--black);
+  margin-bottom:20px;
+}
+
+.sub{
+  font-size:17px;font-weight:300;
+  line-height:1.65;color:var(--gray-600);
+  max-width:440px;margin-bottom:48px;
+}
+
+/* ── FEATURE LIST ── */
+.features{
+  display:flex;flex-direction:column;gap:14px;
+  margin-bottom:48px;
+}
+.feature{
+  display:flex;align-items:flex-start;gap:12px;
+  font-size:14.5px;color:var(--gray-600);line-height:1.5;
+}
+.feature-icon{
+  width:20px;height:20px;border-radius:50%;
+  background:var(--green-pale);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;margin-top:1px;
+  font-size:11px;color:var(--green);
+}
+
+/* ── TEXT PREVIEW ── */
+.preview{
+  background:#0A0A0A !important;
+  border-radius:14px;
+  padding:20px;
+  max-width:340px;
+}
+.preview-top{
+  display:flex;align-items:center;gap:8px;
+  padding-bottom:14px;
+  border-bottom:1px solid rgba(255,255,255,0.1) !important;
+  margin-bottom:14px;
+}
+.preview-avatar{
+  width:32px;height:32px;border-radius:50%;
+  background:var(--blue);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:white;
+  flex-shrink:0;
+}
+.preview-info{font-size:13px;font-weight:500;color:rgba(255,255,255,0.9) !important}
+.preview-info small{display:block;font-size:11px;color:rgba(255,255,255,0.35) !important;font-weight:400;margin-top:1px}
+.bubble{
+  background:rgba(255,255,255,0.12) !important;
+  border-radius:12px 12px 12px 2px;
+  padding:11px 14px;
+  font-size:13.5px;color:#E8E8E8 !important;
+  line-height:1.55;margin-bottom:5px;
+}
+.bubble b{color:#60A5FA !important;font-weight:600}
+.bubble-ts{font-size:10px;color:rgba(255,255,255,0.25) !important;margin-bottom:12px;padding-left:2px}
+.bubble-reply{
+  background:var(--blue);
+  border-radius:12px 12px 2px 12px;
+  padding:9px 14px;
+  font-size:13px;font-weight:600;
+  color:white;text-align:right;
+  margin-left:40px;margin-bottom:5px;
+}
+
+/* ── RIGHT / FORM ── */
+.right{padding:60px 0}
+
+.form-card{
+  background:var(--white);
+  border:1px solid var(--gray-200);
+  border-radius:12px;
+  padding:36px 32px;
+  box-shadow:0 4px 24px rgba(0,0,0,0.06);
+}
+
+.form-title{
+  font-size:20px;font-weight:700;
+  letter-spacing:-0.02em;color:var(--black);
+  margin-bottom:4px;
+}
+.form-sub{
+  font-size:13.5px;color:var(--gray-400);
+  margin-bottom:28px;
+}
+
+.field{margin-bottom:16px}
+.field label{
+  display:block;font-size:12px;font-weight:600;
+  color:var(--gray-600);margin-bottom:6px;
+  letter-spacing:0.03em;text-transform:uppercase;
+}
+.field input,.field select{
+  width:100%;padding:11px 14px;
+  border:1.5px solid var(--gray-200);
+  border-radius:7px;
+  font-family:'Inter',sans-serif;
+  font-size:15px;color:var(--black);
+  background:var(--white);
+  transition:border-color 0.15s,box-shadow 0.15s;
+  appearance:none;
+}
+.field input::placeholder{color:var(--gray-200)}
+.field input:focus,.field select:focus{
+  outline:none;
+  border-color:var(--blue);
+  box-shadow:0 0 0 3px rgba(20,115,230,0.1);
+}
+.field input.err,.field select.err{border-color:var(--red)}
+.err-msg{font-size:11.5px;color:var(--red);margin-top:4px;display:none}
+
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+.select-wrap{position:relative}
+.select-wrap::after{
+  content:'▾';position:absolute;
+  right:12px;top:50%;transform:translateY(-50%);
+  color:var(--gray-400);font-size:11px;pointer-events:none;
+}
+
+.divider{
+  height:1px;background:var(--gray-100);
+  margin:20px 0;
+}
+
+.consent-box{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:12px;background:var(--off-white);
+  border-radius:7px;border:1px solid var(--gray-100);
+  margin-bottom:20px;
+}
+.consent-box input[type=checkbox]{
+  width:15px;height:15px;margin-top:2px;flex-shrink:0;
+  accent-color:var(--blue);cursor:pointer;
+}
+.consent-box p{
+  font-size:11.5px;color:var(--gray-400);line-height:1.6;
+}
+.consent-box a{color:var(--blue);text-decoration:none}
+
+.submit{
+  width:100%;padding:14px;
+  background:var(--blue);color:white;border:none;
+  border-radius:7px;
+  font-family:'Inter',sans-serif;
+  font-size:15px;font-weight:600;
+  cursor:pointer;letter-spacing:-0.01em;
+  transition:background 0.15s,transform 0.1s;
+}
+.submit:hover{background:var(--blue-dark);transform:translateY(-1px)}
+.submit:active{transform:none}
+.submit:disabled{opacity:0.55;cursor:not-allowed;transform:none}
+
+.trust-strip{
+  display:flex;justify-content:center;
+  gap:16px;margin-top:14px;flex-wrap:wrap;
+}
+.trust-item{
+  font-size:12px;color:var(--gray-400);
+  display:flex;align-items:center;gap:5px;
+}
+.trust-item::before{content:'✓';color:var(--green);font-weight:700}
+
+/* ── SUCCESS ── */
+.success{
+  display:none;text-align:center;padding:24px 0;
+}
+.success-check{
+  width:56px;height:56px;border-radius:50%;
+  background:var(--green-pale);border:2px solid var(--green);
+  display:flex;align-items:center;justify-content:center;
+  margin:0 auto 16px;font-size:22px;
+}
+.success h3{
+  font-size:22px;font-weight:700;
+  letter-spacing:-0.02em;margin-bottom:8px;
+}
+.success p{
+  font-size:14px;color:var(--gray-600);
+  line-height:1.6;max-width:280px;margin:0 auto 20px;
+}
+.success-number{
+  display:inline-block;
+  background:var(--black);color:white;
+  padding:12px 24px;border-radius:7px;
+  font-size:16px;font-weight:700;
+  letter-spacing:0.06em;
+}
+.success-hint{
+  display:block;font-size:11.5px;
+  color:var(--gray-400);margin-top:8px;
+}
+
+/* ── BOTTOM STRIP ── */
+.bottom-strip{
+  background:var(--off-white);
+  border-top:1px solid var(--gray-200);
+  padding:48px 5vw;
+}
+.bottom-inner{
+  max-width:1160px;margin:0 auto;
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:32px;
+}
+.bottom-item h3{
+  font-size:13px;font-weight:700;
+  color:var(--black);margin-bottom:6px;
+  letter-spacing:-0.01em;
+}
+.bottom-item p{
+  font-size:13px;color:var(--gray-600);line-height:1.6;
+}
+.bottom-num{
+  font-size:28px;font-weight:700;
+  color:var(--blue);letter-spacing:-0.04em;
+  margin-bottom:4px;line-height:1;
+}
+
+footer{
+  padding:20px 5vw;border-top:1px solid var(--gray-200);
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:8px;
+  max-width:1160px;margin:0 auto;
+}
+footer p{font-size:12px;color:var(--gray-400);line-height:1.7}
+footer a{color:var(--gray-400);text-decoration:underline}
+
+@media(max-width:860px){
+  .page{grid-template-columns:1fr;gap:0;padding-top:40px}
+  .left{padding:0 0 40px}
+  .right{padding:0 0 60px}
+  .bottom-inner{grid-template-columns:1fr 1fr}
+  .field-row{grid-template-columns:1fr}
+  .preview{max-width:100%}
+}
+@media(max-width:480px){
+  .bottom-inner{grid-template-columns:1fr}
+  footer{flex-direction:column;text-align:center}
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --black: #F0F0F0;
+    --white: #141414;
+    --off-white: #1C1C1C;
+    --gray-100: #242424;
+    --gray-200: #2E2E2E;
+    --gray-400: #888888;
+    --gray-600: #AAAAAA;
+    --blue: #4DA3FF;
+    --blue-dark: #3A8FE8;
+    --blue-pale: #1A2A3A;
+    --green: #4CAF72;
+    --green-pale: #1A2E22;
+    --red: #FF6B6B;
+  }
+
+  body { background: #141414; }
+
+  nav {
+    background: rgba(20,20,20,0.95);
+    border-bottom-color: #2E2E2E;
+  }
+
+  .form-card {
+    background: #1C1C1C;
+    border-color: #2E2E2E;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+  }
+
+  .field input, .field select {
+    background: #242424;
+    border-color: #2E2E2E;
+    color: #F0F0F0;
+  }
+
+  .field input::placeholder { color: #444; }
+
+  .field input:focus, .field select:focus {
+    background: #2A2A2A;
+    border-color: #4DA3FF;
+  }
+
+  .consent-box {
+    background: #1C1C1C;
+    border-color: #2E2E2E;
+  }
+
+  .bottom-strip {
+    background: #1C1C1C;
+    border-top-color: #2E2E2E;
+  }
+
+  footer {
+    border-top-color: #2E2E2E;
+  }
+
+  .divider { background: #2E2E2E; }
+
+  .success-check {
+    background: #1A2E22;
+    border-color: #4CAF72;
+  }
+
+  .submit { background: #4DA3FF; }
+  .submit:hover { background: #3A8FE8; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">File<span>Firm</span></div>
+  <div class="nav-right">Powered by Cadence</div>
+</nav>
+
+<div class="page">
+  <div class="left">
+    <div class="eyebrow"><span class="eyebrow-dot"></span>Business compliance by text</div>
+
+    <h1>Your business,<br/>always compliant.</h1>
+
+    <p class="sub">FileFirm texts you before anything is due — taxes, state filings, deadlines. No apps to check. No spreadsheets. Just a simple text when you need to take action.</p>
+
+    <div class="features">
+      <div class="feature">
+        <div class="feature-icon">✓</div>
+        Tax reminders 30, 7, and 1 day before they're due — with the exact link and steps to pay.
+      </div>
+      <div class="feature">
+        <div class="feature-icon">✓</div>
+        State filing deadlines loaded automatically for all 50 states.
+      </div>
+      <div class="feature">
+        <div class="feature-icon">✓</div>
+        Text us a photo of scary mail — we read it and tell you exactly what to do.
+      </div>
+      <div class="feature">
+        <div class="feature-icon">✓</div>
+        Reply DONE when you've handled something and we stop texting you about it.
+      </div>
+    </div>
+
+    <div class="preview">
+      <div class="preview-top">
+        <div class="preview-avatar">C</div>
+        <div class="preview-info">
+          Cadence · FileFirm
+          <small>770-343-3911</small>
+        </div>
+      </div>
+      <div class="bubble">
+        <b>FileFirm:</b> Hey Marcus — Q3 estimated taxes are due in 7 days (Sep 15). Ready to pay? Reply HELP for the exact steps, or DONE when you've filed.
+      </div>
+      <div class="bubble-ts">Today 9:02 AM</div>
+      <div class="bubble-reply">DONE ✓</div>
+      <div class="bubble" style="margin-top:10px">
+        <b>FileFirm:</b> Done. You won't hear from me on this until Q4. You handled it. 🤝
+      </div>
+    </div>
+  </div>
+
+  <div class="right">
+    <div class="form-card">
+      <div id="formWrap">
+        <div class="form-title">Get started free</div>
+        <div class="form-sub">60 seconds. Cadence texts you right after.</div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="fn">First name</label>
+            <input type="text" id="fn" placeholder="Marcus" autocomplete="given-name"/>
+            <div class="err-msg" id="fnErr">Required</div>
+          </div>
+          <div class="field">
+            <label for="ph">Mobile number</label>
+            <input type="tel" id="ph" placeholder="770-555-0100" autocomplete="tel"/>
+            <div class="err-msg" id="phErr">Enter a valid number</div>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="st">State</label>
+            <div class="select-wrap">
+              <select id="st">
+                <option value="">Select…</option>
+                <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option><option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option><option>Florida</option><option>Georgia</option><option>Hawaii</option><option>Idaho</option><option>Illinois</option><option>Indiana</option><option>Iowa</option><option>Kansas</option><option>Kentucky</option><option>Louisiana</option><option>Maine</option><option>Maryland</option><option>Massachusetts</option><option>Michigan</option><option>Minnesota</option><option>Mississippi</option><option>Missouri</option><option>Montana</option><option>Nebraska</option><option>Nevada</option><option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option><option>New York</option><option>North Carolina</option><option>North Dakota</option><option>Ohio</option><option>Oklahoma</option><option>Oregon</option><option>Pennsylvania</option><option>Rhode Island</option><option>South Carolina</option><option>South Dakota</option><option>Tennessee</option><option>Texas</option><option>Utah</option><option>Vermont</option><option>Virginia</option><option>Washington</option><option>West Virginia</option><option>Wisconsin</option><option>Wyoming</option>
+              </select>
+            </div>
+            <div class="err-msg" id="stErr">Required</div>
+          </div>
+          <div class="field">
+            <label for="et">Business type</label>
+            <div class="select-wrap">
+              <select id="et">
+                <option value="">Select…</option>
+                <option>LLC</option>
+                <option>Sole Proprietor</option>
+                <option>S-Corp</option>
+                <option>C-Corp</option>
+                <option>Partnership</option>
+                <option>Not registered yet</option>
+                <option>Not sure</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="consent-box">
+          <input type="checkbox" id="consent"/>
+          <p>I agree to receive SMS messages from FileFirm (Cadence) at the number above. Msg & data rates may apply. Reply STOP to opt out anytime. <a href="https://sites.google.com/view/getfilefirm/privacy-policy" target="_blank">Privacy Policy</a> · <a href="https://sites.google.com/view/getfilefirm/terms-conditions" target="_blank">Terms</a></p>
+        </div>
+
+        <button class="submit" id="submitBtn" onclick="handleSubmit()">
+          Start getting reminders
+        </button>
+
+        <div class="trust-strip">
+          <span class="trust-item">No spam</span>
+          <span class="trust-item">Cancel anytime</span>
+          <span class="trust-item">Free to start</span>
+        </div>
+      </div>
+
+      <div class="success" id="successWrap">
+        <div class="success-check">✓</div>
+        <h3>You're all set.</h3>
+        <p>Cadence is texting you right now. Watch for a message from this number:</p>
+        <div class="success-number">770-343-3911</div>
+        <span class="success-hint">Save it — that's Cadence.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="bottom-strip">
+  <div class="bottom-inner">
+    <div class="bottom-item">
+      <div class="bottom-num">50</div>
+      <h3>States covered</h3>
+      <p>Every state's deadlines and fees loaded automatically for your business.</p>
+    </div>
+    <div class="bottom-item">
+      <div class="bottom-num">200+</div>
+      <h3>Deadlines tracked</h3>
+      <p>Annual reports, estimated taxes, sales tax, business licenses and more.</p>
+    </div>
+    <div class="bottom-item">
+      <div class="bottom-num">3</div>
+      <h3>Reminders per deadline</h3>
+      <p>30 days out, 7 days out, and 1 day before — then silence when you're done.</p>
+    </div>
+    <div class="bottom-item">
+      <div class="bottom-num">$0</div>
+      <h3>To get started</h3>
+      <p>Free to start. No credit card. No app to download. Just a text.</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <p>FileFirm · A product of JS Elizabeth & Companies · Not legal or tax advice.</p>
+  <p>
+    <a href="https://sites.google.com/view/getfilefirm/privacy-policy">Privacy Policy</a> ·
+    <a href="https://sites.google.com/view/getfilefirm/terms-conditions">Terms & Conditions</a>
+  </p>
+</footer>
+
+<script>
+document.getElementById('ph').addEventListener('input',function(){
+  let v=this.value.replace(/\D/g,'');
+  if(v.length>=6) v=v.slice(0,3)+'-'+v.slice(3,6)+'-'+v.slice(6,10);
+  else if(v.length>=3) v=v.slice(0,3)+'-'+v.slice(3);
+  this.value=v;
+});
+
+function showErr(id,msg){const e=document.getElementById(id);if(e){e.textContent=msg;e.style.display='block';}}
+function hideErr(id){const e=document.getElementById(id);if(e)e.style.display='none';}
+
+async function handleSubmit(){
+  let ok=true;
+  const fn=document.getElementById('fn').value.trim();
+  const ph=document.getElementById('ph').value.replace(/\D/g,'');
+  const st=document.getElementById('st').value;
+  const et=document.getElementById('et').value;
+  const consent=document.getElementById('consent').checked;
+
+  ['fnErr','phErr','stErr'].forEach(hideErr);
+  ['fn','ph','st'].forEach(id=>document.getElementById(id).classList.remove('err'));
+
+  if(!fn){showErr('fnErr','Required');document.getElementById('fn').classList.add('err');ok=false;}
+  if(ph.length<10){showErr('phErr','Enter a valid 10-digit number');document.getElementById('ph').classList.add('err');ok=false;}
+  if(!st){showErr('stErr','Required');document.getElementById('st').classList.add('err');ok=false;}
+  if(!consent){alert('Please agree to receive SMS messages to continue.');ok=false;}
+  if(!ok)return;
+
+  const btn=document.getElementById('submitBtn');
+  btn.disabled=true;
+  btn.textContent='Setting up your account…';
+
+  try {
+    await fetch('/signup',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({firstName:fn,phone:ph,state:st,entityType:et})
+    });
+  } catch(e){}
+
+  document.getElementById('formWrap').style.display='none';
+  document.getElementById('successWrap').style.display='block';
+}
+</script>
+</body>
+</html>
