@@ -526,9 +526,9 @@ footer a{color:var(--gray-400);text-decoration:underline}
       <div class="success" id="successWrap">
         <div class="success-check">✓</div>
         <h3>You're all set.</h3>
-        <p>Cadence is texting you right now. Watch for a message from this number:</p>
+        <p id="successMsg">Your FileFirm account is ready.</p>
         <div class="success-number">770-343-3911</div>
-        <span class="success-hint">Save it — that's Cadence.</span>
+        <span class="success-hint" id="successHint">That's Cadence — text us anytime.</span>
       </div>
 
       <div class="text-cta">
@@ -615,6 +615,14 @@ async function handleSubmit(){
 
   document.getElementById('formWrap').style.display='none';
   document.getElementById('successWrap').style.display='block';
+
+  if(consent){
+    document.getElementById('successMsg').textContent='Cadence is texting you right now. Watch for a message from this number:';
+    document.getElementById('successHint').textContent='Save it — that\'s Cadence.';
+  } else {
+    document.getElementById('successMsg').textContent='Your FileFirm account is ready. You can text Cadence anytime at:';
+    document.getElementById('successHint').textContent='Text HELLO to get started with Cadence.';
+  }
 }
 </script>
 </body>
