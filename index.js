@@ -374,16 +374,27 @@ app.post("/sms", async (req, res) => {
 
   // STEP 0: Cold text — compliant intro + wait for YES before enrolling
   if (step === 0) {
-    // If they replied YES (or Y), enroll and advance
+    // If they replied YES (or Y), record consent and enroll
     if (input === "yes" || input === "y") {
       user.step = 1;
+      user.smsConsent = true;
+      user.smsConsentDate = new Date().toISOString();
+      user.smsConsentMethod = "VIA_TEXT";
       await saveUser(user);
-      return reply(res, `You're in! Let's get your profile set up — takes about 3 minutes.\n\nWhat's your first name?`);
+      // Also record consent in Supabase members table if record exists
+      await supabase.from("members").update({
+        sms_consent: true,
+        sms_consent_date: new Date().toISOString(),
+        sms_consent_method: "VIA_TEXT"
+      }).eq("phone", from);
+      return reply(res,
+        `You're enrolled in FileFirm SMS from Cadence. You'll receive tax deadlines, filing reminders, and compliance alerts.\n\nMsg frequency: 2–8 msgs/month. Msg & data rates may apply. Reply STOP to opt out anytime, HELP for help.\n\nLet's get your profile set up — takes about 3 minutes.\n\nWhat's your first name?`
+      );
     }
     // Otherwise send the compliant intro and hold at step 0
     await saveUser(user);
     return reply(res,
-      `Hi! I'm Cadence from FileFirm — a business assistant that sends you tax deadlines, filing reminders, and compliance alerts by text.\n\nMsg frequency: 2–8 msgs/month. Msg & data rates may apply.\nReply STOP to opt out. Reply HELP for help.\nTerms & Privacy: getfilefirm.com/terms | getfilefirm.com/privacy\n\nReply YES to get started or STOP to opt out.`
+      `Hi! I'm Cadence from FileFirm — a business assistant that sends you tax deadlines, filing reminders, and compliance alerts by text.\n\nMsg frequency: 2–8 msgs/month. Msg & data rates may apply.\nReply STOP to opt out. Reply HELP for help.\nTerms & Privacy: https://getfilefirm.com/terms | https://getfilefirm.com/privacy\n\nReply YES to get started or STOP to opt out.`
     );
   }
 
