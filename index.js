@@ -640,7 +640,7 @@ app.get("/privacy", (req, res) => {
   <h2>How We Use Your Information</h2>
   <p>We use your information to send optional SMS business reminders, compliance alerts, and tax deadline notifications via our Cadence assistant. We do not sell your personal information to third parties.</p>
   <h2>SMS Messaging</h2>
-  <p>SMS messaging is optional and not required to use FileFirm. By providing your mobile number and opting in, you consent to receive optional SMS messages from FileFirm. Message frequency varies. Message and data rates may apply. Reply STOP to opt out at any time. Reply HELP for help.</p>
+  <p>SMS messaging is optional and not required to use FileFirm. By providing your mobile number and opting in, you consent to receive optional SMS messages from FileFirm. Message frequency varies (typically 2–8 messages per month, depending on your business deadlines and account activity). Message and data rates may apply. Reply STOP to opt out at any time. Reply HELP for help.</p>
   <h2>Data Security</h2>
   <p>We take reasonable measures to protect your information from unauthorized access. Data is encrypted in transit.</p>
   <h2>Your Rights</h2>
@@ -662,7 +662,7 @@ app.get("/terms", (req, res) => {
   <p>By using FileFirm you agree to these Terms. If you do not agree, do not use the service.</p>
   <h2>SMS Terms</h2>
   <p>FileFirm provides optional SMS business reminders via Cadence. SMS messaging is optional and not required to use the service. By providing your mobile number and opting in, you consent to receive optional SMS messages.</p>
-  <p>Message frequency varies. Message and data rates may apply.</p>
+  <p>Message frequency varies (typically 2–8 messages per month based on your business deadlines and account activity). Message and data rates may apply.</p>
   <h2>Opt-Out</h2>
   <p>Reply STOP at any time to cancel SMS messages. After texting STOP you will receive one confirmation and no further messages will be sent.</p>
   <h2>Help</h2>
