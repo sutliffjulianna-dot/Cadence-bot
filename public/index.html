@@ -211,6 +211,16 @@ h1{
   margin:20px 0;
 }
 
+.text-cta{margin-top:20px;text-align:center;}
+.text-cta-divider{display:flex;align-items:center;gap:10px;margin-bottom:14px;}
+.text-cta-divider::before,.text-cta-divider::after{content:'';flex:1;height:1px;background:var(--gray-100);}
+.text-cta-divider span{font-size:12px;color:var(--gray-400);}
+.text-cta-label{font-size:13px;color:var(--gray-400);margin:0 0 10px;}
+.text-cta-btn{display:inline-block;padding:11px 22px;background:var(--off-white);border:1.5px solid var(--gray-100);border-radius:8px;font-size:14px;font-weight:600;color:var(--blue);text-decoration:none;margin-bottom:10px;}
+.text-cta-btn:hover{background:#e8f0fe;}
+.text-cta-fine{font-size:10.5px;color:var(--gray-400);line-height:1.6;margin:0;}
+.text-cta-fine a{color:var(--blue);text-decoration:none;}
+
 .consent-box{
   display:flex;align-items:flex-start;gap:10px;
   padding:12px;background:var(--off-white);
@@ -519,6 +529,13 @@ footer a{color:var(--gray-400);text-decoration:underline}
         <p>Cadence is texting you right now. Watch for a message from this number:</p>
         <div class="success-number">770-343-3911</div>
         <span class="success-hint">Save it — that's Cadence.</span>
+      </div>
+
+      <div class="text-cta">
+        <div class="text-cta-divider"><span>or</span></div>
+        <p class="text-cta-label">Already have a business? Skip the form.</p>
+        <a class="text-cta-btn" href="sms:+17703433911&body=HELLO">Text HELLO to (770) 343-3911</a>
+        <p class="text-cta-fine">FileFirm will send you tax deadlines, filing reminders, and compliance alerts — 2–8 msgs/month. Msg &amp; data rates may apply. Reply STOP to opt out, HELP for help. <a href="/terms" target="_blank">Terms</a> &amp; <a href="/privacy" target="_blank">Privacy</a>.</p>
       </div>
     </div>
   </div>
