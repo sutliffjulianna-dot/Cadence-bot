@@ -371,12 +371,18 @@ app.post("/sms", async (req, res) => {
 
   // ── ONBOARDING STEPS ─────────────────────────────────────────────────
 
-  // STEP 0: Cold text
+  // STEP 0: Cold text — compliant intro + wait for YES before enrolling
   if (step === 0) {
-    user.step = 1;
+    // If they replied YES (or Y), enroll and advance
+    if (input === "yes" || input === "y") {
+      user.step = 1;
+      await saveUser(user);
+      return reply(res, `You're in! Let's get your profile set up — takes about 3 minutes.\n\nWhat's your first name?`);
+    }
+    // Otherwise send the compliant intro and hold at step 0
     await saveUser(user);
     return reply(res,
-      `Hey, I'm Cadence. 👋\n\nI'm your FileFirm business assistant — I keep track of your taxes, filings, and deadlines so you don't have to stress about them.\n\nI'll only reach out when something needs your attention. No spam, ever.\n\nLet's get you set up — takes about 3 minutes.\n\nWhat's your first name?`
+      `Hi! I'm Cadence from FileFirm — a business assistant that sends you tax deadlines, filing reminders, and compliance alerts by text.\n\nMsg frequency: 2–8 msgs/month. Msg & data rates may apply.\nReply STOP to opt out. Reply HELP for help.\nTerms & Privacy: getfilefirm.com/terms | getfilefirm.com/privacy\n\nReply YES to get started or STOP to opt out.`
     );
   }
 
