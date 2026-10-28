@@ -179,7 +179,7 @@ function getStateReport(state) {
 // ════════════════════════════════════════════════════════════════════════
 app.post("/signup", async (req, res) => {
   try {
-    const { firstName, phone, state, entityType } = req.body;
+    const { firstName, phone, state, entityType, smsConsent } = req.body;
 
     if (!firstName || !phone || !state) {
       return res.status(400).json({ error: "Missing required fields" });
@@ -196,10 +196,12 @@ app.post("/signup", async (req, res) => {
       .single();
 
     if (existing) {
-      // Already signed up — just re-send welcome
-      await sendSMS(cleanPhone,
-        `Hey ${firstName}! You're already in FileFirm. Text STATUS to see where your business stands, or HELP if you need anything. — Cadence 🤝`
-      );
+      // Already signed up — only re-send welcome if they consented to SMS
+      if (smsConsent) {
+        await sendSMS(cleanPhone,
+          `Hey ${firstName}! You're already in FileFirm. Text STATUS to see where your business stands, or HELP if you need anything. — Cadence 🤝`
+        );
+      }
       return res.json({ success: true, existing: true });
     }
 
@@ -224,13 +226,15 @@ app.post("/signup", async (req, res) => {
       data: { name: firstName, state, entityType: entityType || "business" }
     };
 
-    // Send welcome text
-    const welcomeMsg =
-      `Hey ${firstName}! 👋 I'm Cadence — your FileFirm business assistant.\n\n` +
-      `I've got your ${state} ${entityType || "business"} profile started. I'll keep track of your filings, taxes, and deadlines.\n\n` +
-      `One quick question to finish your setup:\n\nWhat's the name of your business?`;
+    // Send welcome text only if customer consented to SMS
+    if (smsConsent) {
+      const welcomeMsg =
+        `Hey ${firstName}! 👋 I'm Cadence — your FileFirm business assistant.\n\n` +
+        `I've got your ${state} ${entityType || "business"} profile started. I'll keep track of your filings, taxes, and deadlines.\n\n` +
+        `One quick question to finish your setup:\n\nWhat's the name of your business?`;
 
-    await sendSMS(cleanPhone, welcomeMsg);
+      await sendSMS(cleanPhone, welcomeMsg);
+    }
     return res.json({ success: true });
 
   } catch (err) {

@@ -582,7 +582,6 @@ async function handleSubmit(){
   if(!fn){showErr('fnErr','Required');document.getElementById('fn').classList.add('err');ok=false;}
   if(ph.length<10){showErr('phErr','Enter a valid 10-digit number');document.getElementById('ph').classList.add('err');ok=false;}
   if(!st){showErr('stErr','Required');document.getElementById('st').classList.add('err');ok=false;}
-  if(!consent){alert('Please agree to receive SMS messages to continue.');ok=false;}
   if(!ok)return;
 
   const btn=document.getElementById('submitBtn');
@@ -593,7 +592,7 @@ async function handleSubmit(){
     await fetch('/signup',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({firstName:fn,phone:ph,state:st,entityType:et})
+      body:JSON.stringify({firstName:fn,phone:ph,state:st,entityType:et,smsConsent:consent})
     });
   } catch(e){}
 
