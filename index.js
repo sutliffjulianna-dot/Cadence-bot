@@ -199,7 +199,7 @@ app.post("/signup", async (req, res) => {
       // Already signed up — only re-send welcome if they consented to SMS
       if (smsConsent) {
         await sendSMS(cleanPhone,
-          `Hey ${firstName}! You're already in FileFirm. Text STATUS to see where your business stands, or HELP if you need anything. — Cadence 🤝`
+          `Hey ${firstName}! You're already enrolled in FileFirm SMS. Text STATUS to see where your business stands, HELP for assistance, or STOP to opt out. — Cadence 🤝`
         );
       }
       return res.json({ success: true, existing: true });
@@ -229,9 +229,10 @@ app.post("/signup", async (req, res) => {
     // Send welcome text only if customer consented to SMS
     if (smsConsent) {
       const welcomeMsg =
-        `Hey ${firstName}! 👋 I'm Cadence — your FileFirm business assistant.\n\n` +
-        `I've got your ${state} ${entityType || "business"} profile started. I'll keep track of your filings, taxes, and deadlines.\n\n` +
-        `One quick question to finish your setup:\n\nWhat's the name of your business?`;
+        `Hey ${firstName}! 👋 You're enrolled in FileFirm SMS — tax deadlines, filing reminders, and compliance alerts from Cadence.\n\n` +
+        `Msg frequency: 2–8 msgs/month. Msg & data rates may apply. Reply STOP to opt out, HELP for help.\n` +
+        `Terms & Privacy: getfilefirm.com/terms | getfilefirm.com/privacy\n\n` +
+        `I've got your ${state} ${entityType || "business"} profile started. One quick question:\n\nWhat's the name of your business?`;
 
       await sendSMS(cleanPhone, welcomeMsg);
     }
