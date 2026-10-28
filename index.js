@@ -656,7 +656,7 @@ app.get("/privacy", (req, res) => {
   <h2>Information We Collect</h2>
   <p>We collect your name, business name, state, mobile phone number, and business details when you sign up at getfilefirm.com or text our number.</p>
   <h2>How We Use Your Information</h2>
-  <p>We use your information to send optional SMS business reminders, compliance alerts, and tax deadline notifications via our Cadence assistant. We do not sell your personal information to third parties.</p>
+  <p>We use your information to send optional SMS business reminders, compliance alerts, and tax deadline notifications via our Cadence assistant. We do not sell or share your SMS opt-in data or personal information with third parties for marketing purposes.</p>
   <h2>SMS Messaging</h2>
   <p>SMS messaging is optional and not required to use FileFirm. By providing your mobile number and opting in, you consent to receive optional SMS messages from FileFirm. Message frequency varies (typically 2–8 messages per month, depending on your business deadlines and account activity). Message and data rates may apply. Reply STOP to opt out at any time. Reply HELP for help.</p>
   <h2>Data Security</h2>
