@@ -682,9 +682,13 @@ app.get("/terms", (req, res) => {
   <p>FileFirm provides optional SMS business reminders via Cadence. SMS messaging is optional and not required to use the service. By providing your mobile number and opting in, you consent to receive optional SMS messages.</p>
   <p>Message frequency varies (typically 2–8 messages per month based on your business deadlines and account activity). Message and data rates may apply.</p>
   <h2>Opt-Out</h2>
-  <p>Reply STOP at any time to cancel SMS messages. After texting STOP you will receive one confirmation and no further messages will be sent.</p>
+  <p><strong>Reply STOP</strong> at any time to cancel SMS messages. After texting STOP you will receive one confirmation and no further messages will be sent.</p>
   <h2>Help</h2>
-  <p>Reply HELP for help or contact hello@getfilefirm.com.</p>
+  <p><strong>Reply HELP</strong> for help or contact <a href="mailto:hello@getfilefirm.com">hello@getfilefirm.com</a>.</p>
+  <h2>Privacy Policy</h2>
+  <p>Your use of FileFirm SMS is also governed by our <a href="https://getfilefirm.com/privacy">Privacy Policy</a>.</p>
+  <h2>Carrier Disclaimer</h2>
+  <p>Mobile carriers are not liable for delayed or undelivered messages.</p>
   <h2>Disclaimer</h2>
   <p>FileFirm provides general business reminders for informational purposes only. We are not a law firm or CPA. Nothing we send constitutes legal or tax advice. Tax estimates are for planning purposes only. Always consult a licensed attorney or CPA.</p>
   <h2>Limitation of Liability</h2>
